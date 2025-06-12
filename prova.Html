@@ -1,0 +1,221 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>biblioteca</title>
+
+  <!-- Tailwind CSS para estilos rápidos e responsivos -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- SweetAlert2 para pop-ups bonitos de confirmação e alertas -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+  <!-- Barra de navegação do topo -->
+  <nav class="bg-gray-800 p-4">
+    <div class="container mx-auto flex justify-between items-center">
+      <a class="text-white font-bold text-xl" href="#">biblioteca</a>
+      <div>
+        <a class="text-gray-300 hover:text-white mx-2" href="#">Login</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Conteúdo principal: formulário + tabela -->
+  <div class="container mx-auto mt-8 p-4">
+    
+    <!-- Título do formulário -->
+    <h2 class="text-2xl font-bold mb-4">Formulário de Cadastro</h2>
+
+    <!-- Formulário de cadastro -->
+    <form id="formCadastro" class="bg-white shadow-md rounded p-4">
+      <div class="mb-4">
+        <label for="nome" class="block text-gray-700 font-bold mb-2">Autor</label>
+        <input type="text" id="nome" name="nome" class="w-full px-3 py-2 border rounded" required />
+      </div>
+      <div class="mb-4">
+        <label for="email" class="block text-gray-700 font-bold mb-2">Gênero</label>
+        <input type="email" id="email" name="email" class="w-full px-3 py-2 border rounded" required />
+      </div>
+      <div class="mb-4">
+        <label for="titulo" class="block text-gray-700 font-bold mb-2">Título</label>
+        <input type="text" id="titulo" name="titulo" class="w-full px-3 py-2 border rounded" required />
+        <label for="data" class="block text-gray-700 font-bold mb-2">Ano Publicado</label>
+        <input type="date" id="data" name="data" class="w-full px-3 py-2 border rounded" required />
+      </div>
+      <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+        Adicionar
+      </button>
+    </form>
+
+    <!-- Título da tabela -->
+    <h2 class="text-2xl font-bold mt-8 mb-4">Tabela de Cadastros</h2>
+
+    <!-- Tabela que exibe os alunos cadastrados -->
+    <table class="w-full table-auto bg-white shadow-md rounded">
+      <thead class="bg-gray-200">
+        <tr>
+          <th class="px-4 py-2 text-center">Autor</th>
+          <th class="px-4 py-2 text-center">Gênero</th>
+          <th class="px-4 py-2 text-center">Título</th>
+          <th class="px-4 py-2 text-center">Ano Publicado</th>
+          <th class="px-4 py-2 text-center">Data de Cadastro</th>
+          <th class="px-4 py-2 text-center">Status</th>
+        </tr>
+      </thead>
+      <tbody id="tabelaCorpo">
+        <!-- Alunos serão inseridos aqui via JavaScript -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- JavaScript da aplicação -->
+  <script>
+    const form = document.getElementById("formCadastro");
+    const botaoSubmit = form.querySelector("button[type='submit']");
+
+    /**
+     * Adiciona um aluno na tabela com botões de editar e deletar
+     */
+    function adicionarNaTabela(aluno) {
+      const tabela = document.getElementById("tabelaCorpo");
+
+      const linha = document.createElement("tr");
+      linha.setAttribute("data-id", aluno.id);
+
+      // Preenche a linha com os dados do aluno
+      linha.innerHTML = `
+        <td class="px-4 py-2 text-center">${aluno.id}</td>
+        <td class="px-4 py-2 text-center">${aluno.nome}</td>
+        <td class="px-4 py-2 text-center">${aluno.email}</td>
+        <td class="px-4 py-2 text-center">
+          <button class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded edit-btn">
+            Editar
+          </button>
+          <button class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded delete-btn ml-2">
+            Delete
+          </button>
+        </td>
+      `;
+
+      // Evento do botão Delete (com confirmação)
+      linha.querySelector(".delete-btn").addEventListener("click", () => {
+        Swal.fire({
+          title: `Deletar aluno ${aluno.nome}?`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Sim, deletar',
+          cancelButtonText: 'Cancelar',
+        }).then((result) => {
+          if (result.isConfirmed) {
+            fetch(`http://localhost:8080/api/alunos/${aluno.id}`, { method: 'DELETE' })
+              .then(response => {
+                if (response.ok) {
+                  linha.remove(); // remove do DOM
+                  Swal.fire('Deletado!', 'Aluno removido com sucesso.', 'success');
+                } else {
+                  Swal.fire('Erro!', 'Não foi possível deletar o aluno.', 'error');
+                }
+              })
+              .catch(() => {
+                Swal.fire('Erro!', 'Erro ao conectar com o servidor.', 'error');
+              });
+          }
+        });
+      });
+
+      // Evento do botão Editar (preenche o formulário com os dados)
+      linha.querySelector(".edit-btn").addEventListener("click", () => {
+        document.getElementById("nome").value = aluno.nome;
+        document.getElementById("email").value = aluno.email;
+        form.dataset.editando = aluno.id;
+
+        // Muda o botão para "Salvar Edição" e Cor
+        botaoSubmit.textContent = "Salvar Edição";
+        botaoSubmit.classList.remove("bg-blue-500", "hover:bg-blue-600");
+        botaoSubmit.classList.add("bg-green-500", "hover:bg-green-600");
+      });
+
+      // Adiciona a linha preenchida na tabela
+      tabela.appendChild(linha);
+    }
+
+    /**
+     * Evento de envio do formulário (Cadastrar ou Atualizar)
+     */
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const nome = document.getElementById("nome").value;
+      const email = document.getElementById("email").value;
+      const idEditando = form.dataset.editando;
+
+      if (idEditando) {
+        // Modo edição
+        fetch(`http://localhost:8080/api/alunos/${idEditando}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id: idEditando, nome, email }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            Swal.fire("Atualizado!", "Aluno atualizado com sucesso!", "success");
+
+            // Atualiza a linha correspondente na tabela
+            const linha = document.querySelector(`tr[data-id="${idEditando}"]`);
+            linha.children[1].textContent = data.nome;
+            linha.children[2].textContent = data.email;
+
+            // Volta ao modo cadastro
+            form.reset();
+            delete form.dataset.editando;
+            botaoSubmit.textContent = "Adicionar";
+            botaoSubmit.classList.remove("bg-yellow-500", "hover:bg-yellow-600");
+            botaoSubmit.classList.add("bg-blue-500", "hover:bg-blue-600");
+          })
+          .catch((err) => {
+            console.error(err);
+            Swal.fire("Erro!", "Não foi possível atualizar o aluno.", "error");
+          });
+      } else {
+        // Modo cadastro
+        fetch("http://localhost:8080/api/alunos", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ nome, email
+, titulo: document.getElementById("titulo").value, data: document.getElementById("data").value }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            Swal.fire("Sucesso!", "Aluno cadastrado com sucesso!", "success");
+            adicionarNaTabela(data); // Adiciona novo aluno na tabela
+            form.reset(); // Limpa o formulário
+          })
+          .catch((err) => {
+            console.error(err);
+            Swal.fire("Erro!", "Não foi possível cadastrar o aluno.", "error");
+          });
+      }
+    });
+
+    /**
+     * Ao abrir a página, carrega todos os alunos do backend
+     */
+    window.addEventListener("DOMContentLoaded", () => {
+      fetch("http://localhost:8080/api/alunos")
+        .then((res) => res.json())
+        .then((alunos) => {
+          alunos.forEach(adicionarNaTabela); // Adiciona cada aluno na tabela
+        })
+        
+  </script>
+</body>
+</html>
+    
